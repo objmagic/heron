@@ -126,5 +126,6 @@ cc_binary(
         "//heron/statemgrs/src/cpp:statemgrs-cxx",
         "//3rdparty/yaml-cpp:yaml-cxx",
     ],
+    linkopts = ["-static"],
     linkstatic = 1,
 )
