@@ -13,8 +13,6 @@
 # limitations under the License.
 
 import json, time
-import logging
-
 import tornado.httpclient
 import tornado.gen
 from tornado.options import options
@@ -344,7 +342,6 @@ def get_metrics(cluster, environment, topology, timerange, query, role=None):
   if role:
     request_url = tornado.httputil.url_concat(request_url, dict(role=role))
 
-  logging.info("get_metrics %s" % (request_url))
   raise tornado.gen.Return((yield fetch_url_as_json(request_url)))
 
 
