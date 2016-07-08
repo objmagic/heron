@@ -7,7 +7,7 @@ import signal
 import subprocess
 import sys
 from collections import namedtuple
-from httplib import *
+# from httplib import *
 
 # The location of default configure file
 DEFAULT_TEST_CONF_FILE = "resources/test.conf"
