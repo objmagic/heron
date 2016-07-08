@@ -1,9 +1,7 @@
-import argparse
 import getpass
 import json
 import logging
 import os
-import pkgutil
 import time
 import signal
 import subprocess
@@ -16,14 +14,15 @@ DEFAULT_TEST_CONF_FILE = "resources/test.conf"
 # Test defaults
 # Test input. Please set each variable as it's own line, ended with \n, otherwise the value of lines
 # passed into the topology will be incorrect, and the test will fail.
-TEST_INPUT = ["1\n","2\n","3\n","4\n","5\n","6\n","7\n","8\n","9\n","10\n", "11\n", "12\n"]
+TEST_INPUT = ["1\n", "2\n", "3\n", "4\n", "5\n", "6\n", "7\n",
+              "8\n", "9\n", "10\n", "11\n", "12\n"]
 TEST_CASES = [
   'KILL_TMASTER',
   'KILL_STMGR',
   'KILL_METRICSMGR',
   'KILL_STMGR_METRICSMGR'
-#  'KILL_BOLT',
-#  'KILL_SPOUT',
+  #  'KILL_BOLT',
+  #  'KILL_SPOUT',
 ]
 # Retry variables in case the output is different from the input
 RETRY_COUNT = 5
@@ -44,25 +43,26 @@ HERON_STMGR = "heron-stmgr"
 HERON_STMGR_CMD = os.path.join(HERON_SANDBOX_HOME, HERON_CORE, HERON_BIN, HERON_STMGR)
 HERON_TMASTER = 'heron-tmaster'
 
-ProcessTuple = namedtuple('ProcessTuple','pid cmd')
+ProcessTuple = namedtuple('ProcessTuple', 'pid cmd')
+
 
 #Runs the test for one topology
 def runTest(test, topologyName, params):
   #submit topology
   try:
     submitTopology(
-        params['cliPath'], 
+        params['cliPath'],
         params['cluster'],
-        params['testJarPath'], 
+        params['testJarPath'],
         params['topologyClassPath'],
         params['topologyName'],
         params['readFile'],
         params['outputFile']
     )
   except Exception as e:
-    logging.error("Failed to submit %s topology: %s" %(topologyName, str(e)))
+    logging.error("Failed to submit %s topology: %s" % (topologyName, str(e)))
     return False
-  logging.info("Successfully submitted %s topology" %(topologyName))
+  logging.info("Successfully submitted %s topology" % (topologyName))
 
   # block until ./heron-stmgr exists
   processList = getProcesses()
@@ -135,7 +135,7 @@ def runTest(test, topologyName, params):
       return False
     # if we get expected result, no need to retry
     if expectedResult == actualResult:
-      break;
+      break
     if (retriesLeft > 0):
       logging.info("Failed to get proper results, retrying")
       time.sleep(RETRY_INTERVAL)
@@ -144,7 +144,7 @@ def runTest(test, topologyName, params):
   try:
     killTopology(params['cliPath'], params['cluster'], params['topologyName'])
   except Exception as e:
-    logging.error("Failed to kill %s topology: %s" %(topologyName, str(e)))
+    logging.error("Failed to kill %s topology: %s" % (topologyName, str(e)))
     return False
   logging.info("Successfully killed %s topology" % (topologyName))
 
@@ -168,6 +168,7 @@ def runTest(test, topologyName, params):
     logging.info("Expected result ---------- \n" + expectedResult)
     return False
 
+
 # Submit topology using heron-cli
 def submitTopology(heronCliPath, testCluster, testJarPath, topologyClassPath, topologyName, inputFile, outputFile):
   logging.info("Submitting topology")
@@ -175,7 +176,7 @@ def submitTopology(heronCliPath, testCluster, testJarPath, topologyClassPath, to
   splitcmd = [
       '%s' % (heronCliPath),
       'submit',
-      '--verbose', 
+      '--verbose',
       '--',
       '%s' % (testCluster),
       '%s' % (testJarPath),
@@ -190,6 +191,7 @@ def submitTopology(heronCliPath, testCluster, testJarPath, topologyClassPath, to
   p = subprocess.Popen(splitcmd)
   p.wait()
   logging.info("Submitted topology")
+
 
 # Kill a topology using heron-cli
 def killTopology(heronCliPath, testCluster, topologyName):
@@ -208,16 +210,18 @@ def killTopology(heronCliPath, testCluster, topologyName):
     raise RuntimeError("Unable to kill the topology: %s" % topologyName)
   logging.info("Successfully killed topology")
 
+
 # Run the test for each topology specified in the conf file
 def runAllTests(args):
   successes = []
   failures = []
   for test in TEST_CASES:
-    if (runTest(test, test, args) == True): # testcase passed
+    if runTest(test, test, args):  # testcase passed
       successes += [test]
     else:
       failures += [test]
   return (successes, failures)
+
 
 def restartShard(heronCliPath, testCluster, topologyName, shardNum):
   logging.info("Killing topology TMaster")
@@ -235,21 +239,23 @@ def restartShard(heronCliPath, testCluster, topologyName, shardNum):
     raise RuntimeError("Unable to kill TMaster")
   logging.info("Killed tmaster")
 
+
 # returns a list of process tuples (pid, cmd)
 # This only applies only for local scheduler as it uses the ps command
 # and assumes the topology will be running on different processes on same machine
 def getProcesses():
-  processes = subprocess.check_output(['ps','-o','pid,args'])
+  processes = subprocess.check_output(['ps', '-o', 'pid,args'])
   processes = processes.split('\n')
-  processes = processes[1:] # remove first line, which is name of columns
+  processes = processes[1:]  # remove first line, which is name of columns
   processList = []
   for process in processes:
     # remove empty lines
     if process == '':
       continue
     pretuple = process.split(' ', 1)
-    processList.append(ProcessTuple(pretuple[0],pretuple[1]))
+    processList.append(ProcessTuple(pretuple[0], pretuple[1]))
   return processList
+
 
 # opens .pid file of process and reads the first and only line, which should be the process pid
 # if fail, return -1
@@ -260,9 +266,11 @@ def getPid(processName, heronWorkingDirectory):
       pid = f.readline()
       return pid
   except Exception as e:
+    print(str(e))
     print("Unable to open file %s" % processPidFile)
     logging.error("Unable to open file %s" % processPidFile)
     return -1
+
 
 # kills process by running unix command kill
 def killProcess(processNumber):
@@ -271,7 +279,7 @@ def killProcess(processNumber):
   try:
     os.kill(int(processNumber), signal.SIGTERM)
   except OSError as ex:
-    if ("No such process" in str(ex)): # killing a non-existing process condsidered as success
+    if ("No such process" in str(ex)):  # killing a non-existing process condsidered as success
       logging.info(str(ex))
     else:
       raise RuntimeError("Unable to kill process %s" % processNumber)
@@ -280,23 +288,23 @@ def killProcess(processNumber):
 
   logging.info("Killed process number %s" % processNumber)
 
+
 def processExists(processList, processCmd):
   for process in processList:
     if processCmd in process.cmd:
       return True
   return False
 
+
 def main():
   root = logging.getLogger()
   root.setLevel(logging.DEBUG)
 
-  # Read the configuration file from package
-  conf_file = DEFAULT_TEST_CONF_FILE
-  confString = pkgutil.get_data(__name__, conf_file)
-  decoder = json.JSONDecoder(strict=False)
-
+  cur_dir = os.path.dirname(os.path.realpath(__file__))
+  conf_file = os.path.join(cur_dir, DEFAULT_TEST_CONF_FILE)
   # Convert the conf file to a json format
-  conf = decoder.decode(confString)
+  with open(conf_file, 'r') as f:
+    conf = json.load(f)
 
   # Get the directory of the heron root, which should be the directory that the script is run from
   heronRepoDirectory = os.getcwd()
@@ -307,9 +315,9 @@ def main():
   args['topologyName'] = conf['topology']['topologyName']
   args['topologyClassPath'] = conf['topology']['topologyClassPath']
   args['workingDirectory'] = os.path.join(
-      homeDirectory, 
-      ".herondata", 
-      "topologies", 
+      homeDirectory,
+      ".herondata",
+      "topologies",
       conf['cluster'],
       getpass.getuser(),
       args['topologyName']
@@ -328,7 +336,7 @@ def main():
     logging.info("Elapsed time: %s" % elapsed_time)
     sys.exit(0)
   else:
-    logging.error("Fail: %s test failed" %len(failures))
+    logging.error("Fail: %s test failed" % len(failures))
     logging.info("Failed Tests: ")
     logging.info("\n".join(failures))
     sys.exit(1)
