@@ -37,7 +37,7 @@ def run(command, parser, cl_args, unknown_args):
   try:
     clusters = utils.get_clusters()
   except:
-    Log.error("Fail to connect to tracker: \'%s\'", cl_args["tracker_url"])
+    Log.error("Fail to fetch data from tracker \'%s\'", cl_args["tracker_url"])
     return False
   print 'Available clusters:'
   for cluster in clusters:

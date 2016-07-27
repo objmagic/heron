@@ -185,7 +185,7 @@ def main(args):
       command_line_args = extract_common_args(command, parser, command_line_args)
     if not command_line_args:
       return 1
-    Log.info("Using tracker URL: %s", command_line_args["tracker_url"])
+    Log.debug("Using tracker URL: %s", command_line_args["tracker_url"])
 
   # timing command execution
   start = time.time()

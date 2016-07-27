@@ -59,7 +59,7 @@ def show_cluster(cl_args, cluster):
       return False
     result = result[cluster]
   except Exception:
-    Log.error("Fail to connect to tracker: \'%s\'", cl_args["tracker_url"])
+    Log.error("Fail to fetch data from tracker \'%s\'", cl_args["tracker_url"])
     return False
   table, header, rest_count = to_table(result)
   print 'Topologies running in cluster \'%s\'' % cluster
@@ -78,7 +78,7 @@ def show_cluster_role(cl_args, cluster, role):
       return False
     result = result[cluster]
   except Exception:
-    Log.error("Fail to connect to tracker: \'%s\'", cl_args["tracker_url"])
+    Log.error("Fail to fetch data from tracker \'%s\'", cl_args["tracker_url"])
     return False
   table, header, rest_count = to_table(result)
   print 'Topologies running in cluster \'%s\' submitted by \'%s\':' % (cluster, role)
@@ -97,7 +97,7 @@ def show_cluster_role_env(cl_args, cluster, role, env):
       return False
     result = result[cluster]
   except Exception:
-    Log.error("Fail to connect to tracker: \'%s\'", cl_args["tracker_url"])
+    Log.error("Fail to fetch data from tracker \'%s\'", cl_args["tracker_url"])
     return False
   table, header, rest_count = to_table(result)
   print 'Topologies running in cluster \'%s\', submitted by \'%s\', and\

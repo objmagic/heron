@@ -35,7 +35,7 @@ def fetch_url_as_json(fetch_url, default_value=None):
   if default_value is None:
     default_value = dict()
 
-  logging.info("fetching url %s", fetch_url)
+  logging.debug("fetching url %s", fetch_url)
   ret = default_value
 
   # time the duration of the fetch
@@ -63,8 +63,8 @@ def fetch_url_as_json(fetch_url, default_value=None):
   end = time.time()
   duration = 1000 * (end - start)
 
-  logging.info("TIME: url fetch took %.2f ms server time %s", execution, fetch_url)
-  logging.info("TIME: url fetch took %.2f ms round trip  %s", duration, fetch_url)
+  logging.debug("TIME: url fetch took %.2f ms server time %s", execution, fetch_url)
+  logging.debug("TIME: url fetch took %.2f ms round trip  %s", duration, fetch_url)
 
   # convert future to value
   raise tornado.gen.Return(ret)
