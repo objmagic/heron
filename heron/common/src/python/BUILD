@@ -4,7 +4,7 @@ load("/tools/rules/pex_rules", "pex_library")
 
 pex_library(
   name = 'common',
-  srcs = glob(['*.py']),
+  srcs = glob(['**/*.py']),
   deps = [
     '//heron/proto:proto-py',
   ],
@@ -17,6 +17,6 @@ pex_library(
 
 pex_library(
   name = 'tracker-access',
-  srcs = glob(['handler/access/*.py']),
+  srcs = glob(['**/handler/access/*.py']),
   deps = [],
 )
