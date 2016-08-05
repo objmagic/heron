@@ -16,16 +16,26 @@ import logging
 from logging.handlers import RotatingFileHandler
 import colorlog
 
-# add default handler
+# initialize default handler for all use cases
 logging.basicConfig()
 
-# Create the logger
+# Create logger
 # pylint: disable=invalid-name
 Log = logging.getLogger()
 
-# time formatter - date - time - UTC offset
+# time formatter formats time as `date - time - UTC offset`
 # e.g. "08/16/1988 21:30:00 +1030"
-# see time formatter documentation for more
+# see Python's time formatter documentation for more
+#
+# Timezone information is necessary since user
+# can start process on a remote machine which is
+# different time zone. In such cases, time info
+# without UTC offest is useless.
+#
+# This customized date_format should be added
+# when each log entry needs to be associated with time
+# For example, `heron-ui` and `heron-tracker` need to
+# display log with time info
 date_format = "%m/%d/%Y %H:%M:%S %z"
 
 def configure(level, logfile=None, with_time=False):
@@ -38,8 +48,11 @@ def configure(level, logfile=None, with_time=False):
   :return: None
   :rtype: None
   """
-  Log.setLevel(level)
-  # if logfile is specified, FileHandler is used
+
+  root_logger = logging.getLogger()
+  root_logger.setLevel(level)
+  # if logfile is specified, FileHandler is used and
+  # there is no need to enable colored output
   if logfile is not None:
     if with_time:
       log_format = "%(asctime)s:%(levelname)s: %(message)s"
@@ -48,7 +61,7 @@ def configure(level, logfile=None, with_time=False):
     formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
     file_handler = logging.FileHandler(logfile)
     file_handler.setFormatter(formatter)
-    Log.addHandler(file_handler)
+    root_logger.addHandler(file_handler)
   # otherwise, use StreamHandler to output to stream (stdout, stderr...)
   else:
     if with_time:
@@ -59,7 +72,7 @@ def configure(level, logfile=None, with_time=False):
     formatter = colorlog.ColoredFormatter(fmt=log_format, datefmt=date_format)
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)
-    Log.addHandler(stream_handler)
+    root_logger.addHandler(stream_handler)
 
 
 def init_rotating_logger(level, logfile, max_files, max_bytes):
@@ -91,7 +104,7 @@ def set_logging_level(cl_args, with_time=False):
   :return: None
   :rtype: None
   """
-  if cl_args['verbose']:
+  if 'verbose' in cl_args and cl_args['verbose']:
     configure(logging.DEBUG, with_time=with_time)
   else:
     configure(logging.INFO, with_time=with_time)
