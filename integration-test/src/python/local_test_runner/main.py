@@ -50,8 +50,11 @@ ProcessTuple = namedtuple('ProcessTuple', 'pid cmd')
 
 # pylint: disable=too-many-return-statements, too-many-branches,
 # pylint: disable=too-many-statements
-def runTest(test, topologyName, params):
+def runTest(test, params):
   ''' Runs the test for one topology '''
+
+  topologyName = params['topologyName']
+
   #submit topology
   try:
     submitTopology(
@@ -65,6 +68,7 @@ def runTest(test, topologyName, params):
     )
   except Exception:
     return False
+
   logging.info("Successfully submitted topology: %s", topologyName)
 
   # block until ./heron-stmgr exists
@@ -127,6 +131,7 @@ def runTest(test, topologyName, params):
   os.rename('temp.txt', params['readFile'])
 
   # sleep for 15 seconds before attempting to get results
+  logging.info("Sleeping 15 seconds and then read results")
   time.sleep(15)
 
   # get actual and expected result
@@ -172,19 +177,16 @@ def runTest(test, topologyName, params):
   # Compare the actual and expected result
   if actualResult == expectedResult:
     logging.info("Actual result matched expected result")
-    logging.info("Actual result ---------- \n" + actualResult)
-    logging.info("Expected result ---------- \n" + expectedResult)
     return True
   else:
     logging.error("Actual result did not match expected result")
-    logging.info("Actual result ---------- \n" + actualResult)
-    logging.info("Expected result ---------- \n" + expectedResult)
+    logging.error("Actual result ---------- \n" + actualResult)
+    logging.error("Expected result ---------- \n" + expectedResult)
     return False
 
 def submitTopology(heronCliPath, testCluster, testJarPath, topologyClassPath,
                    topologyName, inputFile, outputFile):
   ''' Submit topology using heron-cli '''
-  logging.info("Submitting topology")
   # unicode string messes up subprocess.call quotations, must change into string type
   splitcmd = [
       '%s' % (heronCliPath),
@@ -202,13 +204,13 @@ def submitTopology(heronCliPath, testCluster, testJarPath, topologyClassPath,
   logging.debug('commmand:\n%s', ' '.join(splitcmd))
   try:
     subprocess.check_call(splitcmd)
+    logging.info("Submitted topology")
   except Exception as ex:
     logging.debug(traceback.format_exc())
     raise RuntimeError("Failed to submit topology: %s" % str(ex))
 
 def killTopology(heronCliPath, testCluster, topologyName):
   ''' Kill a topology using heron-cli '''
-  logging.info("Killing topology")
   splitcmd = [
       '%s' % (heronCliPath),
       'kill',
@@ -219,13 +221,13 @@ def killTopology(heronCliPath, testCluster, topologyName):
   logging.debug('commmand:\n%s', ' '.join(splitcmd))
   try:
     subprocess.check_call(splitcmd)
+    logging.info("Killed topology...")
   except Exception as ex:
     logging.debug(traceback.format_exc())
     raise RuntimeError("Failed to kill topology: %s" % str(ex))
 
 def restartShard(heronCliPath, testCluster, topologyName, shardNum):
   ''' restart tmaster '''
-  logging.info("Killing topology TMaster")
   splitcmd = [
       '%s' % (heronCliPath),
       'restart',
@@ -233,10 +235,11 @@ def restartShard(heronCliPath, testCluster, topologyName, shardNum):
       '%s' % (topologyName),
       '%d' % shardNum
   ]
-  logging.info("Killing TMaster command...")
+  logging.info("Killing TMaster...")
   logging.debug('commmand:\n%s', ' '.join(splitcmd))
   try:
     subprocess.check_call(splitcmd)
+    logging.info("Killed TMaster...")
   except Exception as ex:
     logging.debug(traceback.format_exc())
     raise RuntimeError("Unable to kill TMaster: %s" % str(ex))
@@ -301,7 +304,7 @@ def runAllTests(args):
   successes = []
   failures = []
   for test in TEST_CASES:
-    if runTest(test, test, args): # testcase passed
+    if runTest(test, args): # testcase passed
       successes.append(test)
     else:
       failures.append(test)
@@ -320,7 +323,9 @@ def main():
   root.addHandler(stream_handler)
 
   # Convert the conf file to a json format
-  with open(DEFAULT_TEST_CONF_FILE) as f:
+  base_path = os.path.dirname(os.path.realpath(__file__))
+  conf_file_path = os.path.join(base_path, DEFAULT_TEST_CONF_FILE)
+  with open(conf_file_path) as f:
     conf = json.load(f)
 
   # Get the directory of the heron root, which should be the directory that the script is run from
