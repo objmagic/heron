@@ -205,7 +205,6 @@ def submitTopology(heronCliPath, testCluster, testJarPath, topologyClassPath,
   logging.debug('commmand:\n%s', ' '.join(splitcmd))
   try:
     subprocess.check_call(splitcmd)
-    logging.info("Submitted topology")
   except Exception as ex:
     logging.debug(traceback.format_exc())
     raise RuntimeError("Failed to submit topology: %s" % str(ex))
