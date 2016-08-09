@@ -1,17 +1,18 @@
-''' main.py '''
+''' local integration test '''
 import getpass
 import json
 import logging
 import os
-import pkgutil
 import time
 import signal
 import subprocess
 import sys
+import traceback
 from collections import namedtuple
 
 # The location of default configure file
 DEFAULT_TEST_CONF_FILE = "resources/test.conf"
+
 # Test defaults
 # Test input. Please set each variable as it's own line, ended with \n, otherwise the value of lines
 # passed into the topology will be incorrect, and the test will fail.
@@ -23,12 +24,15 @@ TEST_CASES = [
     'KILL_METRICSMGR',
     'KILL_STMGR_METRICSMGR'
 ]
+
 # Retry variables in case the output is different from the input
 RETRY_COUNT = 5
 RETRY_INTERVAL = 60
+
 # Topology shard definitions
 TMASTER_SHARD = 0
 NON_TMASTER_SHARD = 1
+
 # Topology process name definitions
 STMGR = 'stmgr'
 HERON_BIN = "bin"
@@ -59,10 +63,9 @@ def runTest(test, topologyName, params):
         params['readFile'],
         params['outputFile']
     )
-  except Exception as e:
-    logging.error("Failed to submit %s topology: %s", topologyName, str(e))
+  except Exception:
     return False
-  logging.info("Successfully submitted %s topology", topologyName)
+  logging.info("Successfully submitted topology: %s", topologyName)
 
   # block until ./heron-stmgr exists
   processList = getProcesses()
@@ -77,32 +80,38 @@ def runTest(test, topologyName, params):
   except Exception as e:
     logging.error("Failed to write to temp.txt file")
     return False
+
   # extra time to start up, write to .pid file, connect to tmaster, etc.
+  logging.info("Sleeping 30 seconds to get everything prepared")
   time.sleep(30)
 
   # execute test case
   if test == 'KILL_TMASTER':
-    print "Executing kill tmaster"
+    logging.info("Executing kill tmaster")
     restartShard(params['cliPath'], params['cluster'], params['topologyName'], TMASTER_SHARD)
+
   elif test == 'KILL_STMGR':
-    print "Executing kill stmgr"
+    logging.info("Executing kill stmgr")
     stmgrPid = getPid('%s-%d' % (STMGR, NON_TMASTER_SHARD), params['workingDirectory'])
     killProcess(stmgrPid)
+
   elif test == 'KILL_METRICSMGR':
-    print "Executing kill metrics manager"
+    logging.info("Executing kill metrics manager")
     metricsmgrPid = getPid('%s-%d' % (HERON_METRICSMGR, NON_TMASTER_SHARD),
                            params['workingDirectory'])
     killProcess(metricsmgrPid)
+
   elif test == 'KILL_STMGR_METRICSMGR':
-    print "Executing kill stmgr metrics manager"
+    logging.info("Executing kill stmgr metrics manager")
     stmgrPid = getPid('%s-%d' % (STMGR, NON_TMASTER_SHARD), params['workingDirectory'])
     killProcess(stmgrPid)
 
     metricsmgrPid = getPid('%s-%d' % (HERON_METRICSMGR, NON_TMASTER_SHARD),
                            params['workingDirectory'])
     killProcess(metricsmgrPid)
+
   elif test == 'KILL_BOLT':
-    print "Executing kill bolt"
+    logging.info("Executing kill bolt")
     boltPid = getPid('container_%d_%s' % (NON_TMASTER_SHARD, HERON_BOLT),
                      params['workingDirectory'])
     killProcess(boltPid)
@@ -180,7 +189,6 @@ def submitTopology(heronCliPath, testCluster, testJarPath, topologyClassPath,
   splitcmd = [
       '%s' % (heronCliPath),
       'submit',
-      '--verbose',
       '--',
       '%s' % (testCluster),
       '%s' % (testJarPath),
@@ -190,11 +198,13 @@ def submitTopology(heronCliPath, testCluster, testJarPath, topologyClassPath,
       '%s' % (outputFile),
       '%d' % (len(TEST_INPUT))
   ]
-  logging.info("Submitting topology: ")
-  logging.info(splitcmd)
-  p = subprocess.Popen(splitcmd)
-  p.wait()
-  logging.info("Submitted topology")
+  logging.info("Submitting topology...")
+  logging.debug('commmand:\n%s', ' '.join(splitcmd))
+  try:
+    subprocess.check_call(splitcmd)
+  except Exception as ex:
+    logging.debug(traceback.format_exc())
+    raise RuntimeError("Failed to submit topology: %s" % str(ex))
 
 def killTopology(heronCliPath, testCluster, topologyName):
   ''' Kill a topology using heron-cli '''
@@ -202,27 +212,16 @@ def killTopology(heronCliPath, testCluster, topologyName):
   splitcmd = [
       '%s' % (heronCliPath),
       'kill',
-      '--verbose',
       '%s' % (testCluster),
       '%s' % (topologyName),
   ]
-  logging.info("Killing topology:")
-  logging.info(splitcmd)
-  # this call can be blocking, no need for subprocess
-  if subprocess.call(splitcmd) != 0:
-    raise RuntimeError("Unable to kill the topology: %s" % topologyName)
-  logging.info("Successfully killed topology")
-
-def runAllTests(args):
-  ''' Run the test for each topology specified in the conf file '''
-  successes = []
-  failures = []
-  for test in TEST_CASES:
-    if runTest(test, test, args): # testcase passed
-      successes += [test]
-    else:
-      failures += [test]
-  return (successes, failures)
+  logging.info("Killing topology...")
+  logging.debug('commmand:\n%s', ' '.join(splitcmd))
+  try:
+    subprocess.check_call(splitcmd)
+  except Exception as ex:
+    logging.debug(traceback.format_exc())
+    raise RuntimeError("Failed to kill topology: %s" % str(ex))
 
 def restartShard(heronCliPath, testCluster, topologyName, shardNum):
   ''' restart tmaster '''
@@ -230,16 +229,17 @@ def restartShard(heronCliPath, testCluster, topologyName, shardNum):
   splitcmd = [
       '%s' % (heronCliPath),
       'restart',
-      '--verbose',
       '%s' % (testCluster),
       '%s' % (topologyName),
       '%d' % shardNum
   ]
-  logging.info("Killing TMaster command:")
-  logging.info(splitcmd)
-  if subprocess.call(splitcmd) != 0:
-    raise RuntimeError("Unable to kill TMaster")
-  logging.info("Killed tmaster")
+  logging.info("Killing TMaster command...")
+  logging.debug('commmand:\n%s', ' '.join(splitcmd))
+  try:
+    subprocess.check_call(splitcmd)
+  except Exception as ex:
+    logging.debug(traceback.format_exc())
+    raise RuntimeError("Unable to kill TMaster: %s" % str(ex))
 
 def getProcesses():
   '''
@@ -270,7 +270,6 @@ def getPid(processName, heronWorkingDirectory):
       pid = f.readline()
       return pid
   except Exception:
-    print("Unable to open file %s", processPidFile)
     logging.error("Unable to open file %s", processPidFile)
     return -1
 
@@ -297,22 +296,37 @@ def processExists(processList, processCmd):
       return True
   return False
 
+def runAllTests(args):
+  ''' Run the test for each topology specified in the conf file '''
+  successes = []
+  failures = []
+  for test in TEST_CASES:
+    if runTest(test, test, args): # testcase passed
+      successes.append(test)
+    else:
+      failures.append(test)
+  return successes, failures
+
 def main():
   ''' main '''
   root = logging.getLogger()
   root.setLevel(logging.DEBUG)
 
-  # Read the configuration file from package
-  conf_file = DEFAULT_TEST_CONF_FILE
-  confString = pkgutil.get_data(__name__, conf_file)
-  decoder = json.JSONDecoder(strict=False)
+  # add formatter and handler
+  log_format = "%(levelname)s: %(message)s"
+  formatter = logging.Formatter(log_format)
+  stream_handler = logging.StreamHandler()
+  stream_handler.setFormatter(formatter)
+  root.addHandler(stream_handler)
 
   # Convert the conf file to a json format
-  conf = decoder.decode(confString)
+  with open(DEFAULT_TEST_CONF_FILE) as f:
+    conf = json.load(f)
 
   # Get the directory of the heron root, which should be the directory that the script is run from
   heronRepoDirectory = os.getcwd()
 
+  # prepare parameters
   args = dict()
   homeDirectory = os.path.expanduser("~")
   args['cluster'] = conf['cluster']
@@ -332,18 +346,18 @@ def main():
   args['testJarPath'] = os.path.join(heronRepoDirectory, conf['testJarPath'])
 
   start_time = time.time()
-  (successes, failures) = runAllTests(args)
+  successes, failures = runAllTests(args)
   elapsed_time = time.time() - start_time
 
   if not failures:
     logging.info("Success: %s (all) tests passed", len(successes))
     logging.info("Elapsed time: %s", elapsed_time)
-    sys.exit(0)
+    return 0
   else:
     logging.error("Fail: %s test failed", len(failures))
     logging.info("Failed Tests: ")
     logging.info("\n".join(failures))
-    sys.exit(1)
+    return 1
 
 if __name__ == '__main__':
-  main()
+  sys.exit(main())
