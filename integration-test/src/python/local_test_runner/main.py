@@ -53,6 +53,9 @@ ProcessTuple = namedtuple('ProcessTuple', 'pid cmd')
 def runTest(test, params):
   ''' Runs the test for one topology '''
 
+  testName = '%s %s %s' % ('*' * 10, test, '*' * 10)
+  print '{:^80}'.format(testName)
+
   topologyName = params['topologyName']
 
   #submit topology
@@ -69,7 +72,6 @@ def runTest(test, params):
   except Exception:
     return False
 
-  logging.info("Successfully submitted topology: %s", topologyName)
 
   # block until ./heron-stmgr exists
   processList = getProcesses()
@@ -164,7 +166,6 @@ def runTest(test, params):
   except Exception as e:
     logging.error("Failed to kill %s topology: %s", topologyName, str(e))
     return False
-  logging.info("Successfully killed %s topology", topologyName)
 
   # delete test files
   try:
