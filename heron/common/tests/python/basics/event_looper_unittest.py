@@ -57,7 +57,7 @@ class EventLooperTest(unittest.TestCase):
     self.looper.register_timer_task_in_sec(to_run, interval)
     self.looper.loop()
     end_time = time.time()
-    self.assertAlmostEqual(start_time + interval, end_time, delta=0.01)
+    self.assertAlmostEqual(start_time + interval, end_time, delta=0.03)
     self.assertEqual(10, self.global_value)
 
   def test_exit_loop(self):
@@ -88,7 +88,7 @@ class EventLooperTest(unittest.TestCase):
     interval = 1.0
     self.looper.register_timer_task_in_sec(to_run, interval)
     next_interval = self.looper._get_next_timeout_interval()
-    self.assertAlmostEqual(next_interval, interval, delta=0.01)
+    self.assertAlmostEqual(next_interval, interval, delta=0.03)
 
   def test_run_once(self):
     def to_run():

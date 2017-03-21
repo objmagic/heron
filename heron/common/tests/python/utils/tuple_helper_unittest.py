@@ -34,7 +34,7 @@ class TupleHelperTest(unittest.TestCase):
     self.assertEqual(tup.stream, STREAM.id)
     self.assertIsNone(tup.task)
     self.assertEqual(tup.values, VALUES)
-    self.assertAlmostEqual(tup.creation_time, time.time(), delta=0.01)
+    self.assertAlmostEqual(tup.creation_time, time.time(), delta=0.03)
     self.assertIsNone(tup.roots)
 
   def test_tick_tuple(self):
@@ -45,7 +45,7 @@ class TupleHelperTest(unittest.TestCase):
     self.assertIsNone(tup.task)
     self.assertIsNone(tup.values)
     self.assertIsNone(tup.roots)
-    self.assertAlmostEqual(tup.creation_time, time.time(), delta=0.01)
+    self.assertAlmostEqual(tup.creation_time, time.time(), delta=0.03)
 
   def test_root_tuple_info(self):
     STREAM_ID = "stream id"
